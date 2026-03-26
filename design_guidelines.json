@@ -1,0 +1,107 @@
+{
+  "theme": "dark",
+  "archetype": "Archetype 4 (Swiss & High-Contrast) + Archetype 7 accents (Linear/Vercel Vibe)",
+  "colors": {
+    "background": "#0A0A0A",
+    "surface": "#111111",
+    "border": "#222222",
+    "primary": "#7C3AED",
+    "secondary": "#2563EB",
+    "text": {
+      "main": "#FFFFFF",
+      "muted": "#A1A1AA"
+    },
+    "gradients": {
+      "hero": "linear-gradient(to right, #7C3AED, #2563EB)",
+      "border_glow": "linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.5), transparent)",
+      "text_gradient": "bg-clip-text text-transparent bg-gradient-to-r from-[#7C3AED] to-[#2563EB]"
+    }
+  },
+  "typography": {
+    "heading_font": "Outfit",
+    "body_font": "Manrope",
+    "mono_font": "JetBrains Mono",
+    "heading_styles": {
+      "h1": "text-5xl md:text-6xl+ tracking-tighter font-bold text-white",
+      "h2": "text-3xl md:text-4xl tracking-tight font-semibold text-white",
+      "h3": "text-xl md:text-2xl tracking-tight font-medium text-white",
+      "h4": "text-lg md:text-xl tracking-tight font-medium text-white"
+    },
+    "body_styles": {
+      "base": "text-base leading-relaxed text-[#A1A1AA]",
+      "small": "text-sm leading-normal text-[#A1A1AA]",
+      "label": "text-xs tracking-[0.2em] uppercase text-[#A1A1AA]"
+    }
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Tailwind's generous spacing (p-6, p-8, p-12, gap-8) for breathing room",
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8",
+    "grid_bento": "grid-cols-1 md:grid-cols-12 gap-6",
+    "dashboard_grid": "grid-cols-1 lg:grid-cols-4 gap-6",
+    "border_radius": "rounded-xl for cards, rounded-full for pills/buttons"
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-md px-6 py-2.5 font-medium transition-all shadow-[0_0_15px_rgba(124,58,237,0.3)]",
+      "secondary": "bg-[#111111] border border-[#222222] hover:bg-[#222222] hover:text-white text-[#A1A1AA] rounded-md px-6 py-2.5 font-medium transition-all"
+    },
+    "cards": {
+      "base": "bg-[#111111] border border-[#222222] rounded-xl p-6 relative overflow-hidden",
+      "hover": "hover:border-[#7C3AED]/50 transition-colors duration-300 group"
+    },
+    "navigation": {
+      "header": "sticky top-0 z-50 bg-[#0A0A0A]/80 backdrop-blur-xl border-b border-[#222222]"
+    },
+    "split_screen_interview": {
+      "layout": "grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-64px)] overflow-hidden",
+      "left_panel": "p-6 flex flex-col bg-[#0A0A0A]",
+      "right_panel": "border-l border-[#222222] bg-[#111111] overflow-hidden flex flex-col"
+    },
+    "form_elements": {
+      "input": "bg-[#0A0A0A] border border-[#222222] focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] text-white rounded-md",
+      "label": "text-sm font-medium text-[#A1A1AA] mb-1.5"
+    }
+  },
+  "visual_effects": {
+    "glassmorphism": "backdrop-blur-xl bg-[#0A0A0A]/80 border-b border-[#222222]",
+    "glow": "shadow-[0_0_30px_rgba(124,58,237,0.15)]",
+    "noise": "Add a subtle CSS radial gradient or SVG noise to the background #0A0A0A to prevent completely flat darkness."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "hero_background",
+        "url": "https://images.pexels.com/photos/6985132/pexels-photo-6985132.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Vivid dark blue/purple gradient abstract. Use as a heavily blurred, low-opacity (10-20%) background behind the landing page hero section to create an ambient glow."
+      },
+      {
+        "category": "ai_interviewer_avatar",
+        "url": "https://images.unsplash.com/photo-1677212004257-103cfa6b59d0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NjZ8MHwxfHNlYXJjaHwxfHwzZCUyMHRlY2glMjBhdmF0YXIlMjBmYWNlJTIwZGFyayUyMGJhY2tncm91bmR8ZW58MHx8fHwxNzc0NTY4MDYwfDA&ixlib=rb-4.1.0&q=85",
+        "description": "Glowing tech face avatar for the AI Interviewer in the interview room. Put in a circular or rounded-xl container with a subtle glowing #7C3AED border."
+      },
+      {
+        "category": "user_avatar",
+        "url": "https://images.unsplash.com/photo-1627776880991-808c5996527b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzF8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBpbmRpYW4lMjBzdHVkZW50JTIwcG9ydHJhaXR8ZW58MHx8fHwxNzc0NTY4MDU1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Professional Indian student portrait for user profile in the dashboard header and settings."
+      }
+    ]
+  },
+  "animations": {
+    "hover": "transform transition-transform hover:-translate-y-1 duration-300",
+    "reveal": "framer-motion fade-in and slide-up for staggered lists",
+    "active_mic": "Pulse animation (animate-pulse) on the microphone button when recording, glowing with #2563EB or #7C3AED."
+  },
+  "instructions_to_main_agent": [
+    "Import fonts via Google Fonts: Outfit (Headings), Manrope (Body), and JetBrains Mono (Code/Mono).",
+    "Use lucide-react for iconography. Keep icons consistent in size (w-5 h-5 mostly) and color (text-[#A1A1AA]).",
+    "Implement Monaco Editor (@monaco-editor/react) for the code editing component in the interview room. Use the 'vs-dark' theme, overriding it to match #111111 background if possible.",
+    "The UI must be exclusively in Dark Mode (#0A0A0A background). Do not implement a light theme.",
+    "Use raw HTML/Tailwind for the Landing page (Linear vibe: big typography, high contrast, top-to-bottom scroll).",
+    "Use Shadcn UI for the Dashboard, Settings, and Feedback views. Customize Shadcn borders to #222222 and backgrounds to #111111.",
+    "Interview Room: Implement a split-screen design. Left Panel: AI Avatar (centered), active conversation captions, and mic controls. Right Panel: Code Editor with a language selector at the top.",
+    "Feedback Report: Use Recharts to show progress over time, or a spider chart (radar) for skill breakdown (e.g., Communication, Technical, Problem Solving).",
+    "Add 'data-testid' to all interactive elements for testing (e.g., data-testid='start-interview-btn').",
+    "Ensure hover states explicitly set the text color (e.g., hover:text-white) over #A1A1AA elements.",
+    "No generic full-screen gradients. Use subtle lighting (drop-shadows, blurred absolute divs) behind elements to simulate the Linear/Vercel neon glow effect."
+  ]
+}
