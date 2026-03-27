@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, API } from '../App';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { 
   ArrowLeft, User, Settings as SettingsIcon, Volume2, Languages,
-  MessageSquare, Save, Trash2, LogOut
+  MessageSquare, Save, Trash2, LogOut, Key, ExternalLink, Mic
 } from 'lucide-react';
 import { 
   Select,
@@ -32,10 +32,12 @@ const Settings = () => {
   const [settings, setSettings] = useState({
     avatar_choice: user?.avatar_choice || 'priya',
     language_preference: user?.language_preference || 'english',
-    voice_speed: user?.voice_speed || 'normal'
+    voice_speed: user?.voice_speed || 'normal',
+    elevenlabs_api_key: user?.elevenlabs_api_key || ''
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testingVoice, setTestingVoice] = useState(false);
 
   const saveSettings = async () => {
     setSaving(true);
@@ -50,8 +52,41 @@ const Settings = () => {
     }
   };
 
+  const testVoice = async () => {
+    if (!settings.elevenlabs_api_key) {
+      alert('Please enter your ElevenLabs API key first');
+      return;
+    }
+    
+    setTestingVoice(true);
+    try {
+      // Save key first
+      await axios.put(`${API}/settings`, { elevenlabs_api_key: settings.elevenlabs_api_key });
+      
+      // Test TTS
+      const response = await axios.post(`${API}/tts/generate`, {
+        text: `Hello! I'm ${settings.avatar_choice === 'arjun' ? 'Arjun' : 'Priya'}, your AI interviewer. How are you doing today?`,
+        voice_id: settings.avatar_choice === 'arjun' ? '29vD33N1CtxCmqQRPOHJ' : '21m00Tcm4TlvDq8ikWAM'
+      });
+      
+      if (!response.data.use_web_speech && response.data.audio_data) {
+        const audio = new Audio(response.data.audio_data);
+        audio.play();
+      } else {
+        // Fallback to Web Speech
+        const utterance = new SpeechSynthesisUtterance(`Hello! I'm ${settings.avatar_choice === 'arjun' ? 'Arjun' : 'Priya'}, your AI interviewer.`);
+        window.speechSynthesis.speak(utterance);
+        alert('ElevenLabs not available. Using browser voice instead.');
+      }
+    } catch (error) {
+      console.error('Voice test error:', error);
+      alert('Failed to test voice. Please check your API key.');
+    } finally {
+      setTestingVoice(false);
+    }
+  };
+
   const handleDeleteAccount = async () => {
-    // In a real app, you'd have an actual delete endpoint
     alert('Account deletion requested. This feature is coming soon.');
   };
 
@@ -100,6 +135,66 @@ const Settings = () => {
             <div>
               <h3 className="text-white font-medium">{user?.name}</h3>
               <p className="text-[#A1A1AA] text-sm">{user?.email}</p>
+              <p className="text-xs text-[#666666] capitalize mt-1">
+                {user?.auth_type === 'google' ? 'Signed in with Google' : 'Email account'}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Voice Settings (ElevenLabs) */}
+        <motion.div 
+          className="card mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <div className="flex items-center gap-2 mb-6">
+            <Mic className="w-5 h-5 text-[#7C3AED]" />
+            <h2 className="text-lg font-semibold text-white">Voice Settings (ElevenLabs)</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-[#A1A1AA] mb-2">
+                <Key className="w-4 h-4 inline mr-2" />
+                ElevenLabs API Key
+              </label>
+              <input
+                type="password"
+                value={settings.elevenlabs_api_key}
+                onChange={(e) => setSettings({ ...settings, elevenlabs_api_key: e.target.value })}
+                placeholder="Enter your ElevenLabs API key"
+                className="w-full px-4 py-3 bg-[#0A0A0A] border border-[#222222] rounded-lg text-white placeholder-[#666666] focus:outline-none focus:border-[#7C3AED] transition-colors"
+                data-testid="elevenlabs-key-input"
+              />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-[#A1A1AA]">
+                  Get free API key (10,000 characters/month):
+                  <a 
+                    href="https://elevenlabs.io" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-[#7C3AED] hover:text-[#6D28D9] ml-1 inline-flex items-center gap-1"
+                  >
+                    elevenlabs.io <ExternalLink className="w-3 h-3" />
+                  </a>
+                </p>
+                <button
+                  onClick={testVoice}
+                  disabled={testingVoice}
+                  className="text-xs text-[#7C3AED] hover:text-[#6D28D9] flex items-center gap-1"
+                >
+                  {testingVoice ? 'Testing...' : 'Test Voice'}
+                  <Volume2 className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-lg">
+              <p className="text-sm text-[#A1A1AA]">
+                Without an API key, MockMate will use your browser's built-in voice (Web Speech API), which works but sounds more robotic.
+              </p>
             </div>
           </div>
         </motion.div>
@@ -130,11 +225,18 @@ const Settings = () => {
                   }`}
                   data-testid="avatar-priya-btn"
                 >
-                  <img 
-                    src="https://images.unsplash.com/photo-1677212004257-103cfa6b59d0?w=100&h=100&fit=crop"
-                    alt="Priya"
-                    className="w-16 h-16 rounded-full mb-2"
-                  />
+                  {/* Priya Avatar */}
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7C3AED] via-[#5B21B6] to-[#2563EB] flex items-center justify-center mb-2">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <div className="space-y-1">
+                        <div className="flex gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        </div>
+                        <div className="w-4 h-0.5 bg-white rounded-full mx-auto" />
+                      </div>
+                    </div>
+                  </div>
                   <span className="text-white font-medium">Priya</span>
                   <span className="text-xs text-[#A1A1AA]">Female Voice</span>
                 </button>
@@ -148,11 +250,18 @@ const Settings = () => {
                   }`}
                   data-testid="avatar-arjun-btn"
                 >
-                  <img 
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop"
-                    alt="Arjun"
-                    className="w-16 h-16 rounded-full mb-2"
-                  />
+                  {/* Arjun Avatar */}
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#2563EB] via-[#1D4ED8] to-[#7C3AED] flex items-center justify-center mb-2">
+                    <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
+                      <div className="space-y-1">
+                        <div className="flex gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                          <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                        </div>
+                        <div className="w-4 h-0.5 bg-white rounded-full mx-auto" />
+                      </div>
+                    </div>
+                  </div>
                   <span className="text-white font-medium">Arjun</span>
                   <span className="text-xs text-[#A1A1AA]">Male Voice</span>
                 </button>

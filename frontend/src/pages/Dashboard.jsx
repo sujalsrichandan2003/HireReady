@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { 
   Code, Binary, Braces, Users, Server, BarChart, Coffee, Brain, Layout, Database,
   Play, History, TrendingUp, Target, MessageSquare, Settings, LogOut, ChevronRight,
-  Calendar, Award, AlertCircle
+  Calendar, Award, AlertCircle, Zap, Camera, Shield, Clock
 } from 'lucide-react';
 import { 
   Select,
@@ -23,6 +23,14 @@ import {
   TableHeader,
   TableRow,
 } from "../components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
 import {
   RadarChart,
   PolarGrid,
@@ -54,8 +62,11 @@ const Dashboard = () => {
   const [recommendation, setRecommendation] = useState('');
   const [selectedTrack, setSelectedTrack] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
+  const [selectedTopics, setSelectedTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startingInterview, setStartingInterview] = useState(false);
+  const [showRealModeDialog, setShowRealModeDialog] = useState(false);
+  const [interviewMode, setInterviewMode] = useState('practice');
 
   useEffect(() => {
     fetchData();
@@ -81,14 +92,43 @@ const Dashboard = () => {
     }
   };
 
-  const startInterview = async () => {
+  const startInterview = async (mode = 'practice') => {
     if (!selectedTrack) return;
+    
+    if (mode === 'real') {
+      setShowRealModeDialog(true);
+      setInterviewMode('real');
+      return;
+    }
     
     setStartingInterview(true);
     try {
       const response = await axios.post(`${API}/interviews/start`, {
         track: selectedTrack,
-        difficulty: selectedDifficulty
+        difficulty: selectedDifficulty,
+        mode: mode,
+        topics: selectedTopics.length > 0 ? selectedTopics : null,
+        camera_enabled: mode === 'real'
+      });
+      navigate(`/interview/${response.data.session_id}`);
+    } catch (error) {
+      console.error('Error starting interview:', error);
+      alert('Failed to start interview. Please try again.');
+    } finally {
+      setStartingInterview(false);
+    }
+  };
+
+  const startRealInterview = async () => {
+    setShowRealModeDialog(false);
+    setStartingInterview(true);
+    try {
+      const response = await axios.post(`${API}/interviews/start`, {
+        track: selectedTrack,
+        difficulty: selectedDifficulty,
+        mode: 'real',
+        topics: selectedTopics.length > 0 ? selectedTopics : null,
+        camera_enabled: true
       });
       navigate(`/interview/${response.data.session_id}`);
     } catch (error) {
@@ -112,6 +152,11 @@ const Dashboard = () => {
       month: 'short',
       year: 'numeric'
     });
+  };
+
+  const getSelectedTrackTopics = () => {
+    const track = tracks.find(t => t.id === selectedTrack);
+    return track?.topics || [];
   };
 
   // Prepare radar chart data
@@ -204,7 +249,7 @@ const Dashboard = () => {
             {/* Track Selection */}
             <div className="sm:col-span-2">
               <label className="block text-sm text-[#A1A1AA] mb-2">Select Track</label>
-              <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+              <Select value={selectedTrack} onValueChange={(v) => { setSelectedTrack(v); setSelectedTopics([]); }}>
                 <SelectTrigger className="bg-[#0A0A0A] border-[#222222] text-white" data-testid="track-select">
                   <SelectValue placeholder="Choose interview track" />
                 </SelectTrigger>
@@ -233,24 +278,58 @@ const Dashboard = () => {
               </Select>
             </div>
             
-            {/* Start Button */}
-            <div className="flex items-end">
-              <button 
-                onClick={startInterview}
-                disabled={!selectedTrack || startingInterview}
-                className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                data-testid="start-interview-btn"
-              >
-                {startingInterview ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5" />
-                    Start Interview
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Topic Selection for DSA */}
+            {selectedTrack === 'dsa' && (
+              <div className="sm:col-span-2 lg:col-span-1">
+                <label className="block text-sm text-[#A1A1AA] mb-2">Focus Topics (Optional)</label>
+                <Select 
+                  value={selectedTopics[0] || ''} 
+                  onValueChange={(v) => setSelectedTopics(v ? [v] : [])}
+                >
+                  <SelectTrigger className="bg-[#0A0A0A] border-[#222222] text-white">
+                    <SelectValue placeholder="All topics" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#111111] border-[#222222]">
+                    <SelectItem value="" className="text-white hover:bg-[#222222]">All topics</SelectItem>
+                    {getSelectedTrackTopics().map((topic) => (
+                      <SelectItem key={topic} value={topic} className="text-white hover:bg-[#222222] capitalize">
+                        {topic.replace('-', ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+
+          {/* Interview Mode Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <button 
+              onClick={() => startInterview('practice')}
+              disabled={!selectedTrack || startingInterview}
+              className="btn-primary flex-1 flex items-center justify-center gap-2 py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="start-practice-btn"
+            >
+              {startingInterview ? (
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <>
+                  <Play className="w-5 h-5" />
+                  Practice Interview
+                </>
+              )}
+            </button>
+            
+            <button 
+              onClick={() => startInterview('real')}
+              disabled={!selectedTrack || startingInterview}
+              className="flex-1 flex items-center justify-center gap-2 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-md font-medium transition-all hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+              data-testid="start-real-btn"
+            >
+              <Zap className="w-5 h-5" />
+              Real Interview Mode
+              <span className="px-2 py-0.5 bg-white/20 rounded text-xs">PRO</span>
+            </button>
           </div>
 
           {/* Track Grid */}
@@ -392,6 +471,7 @@ const Dashboard = () => {
                   <TableRow className="border-[#222222]">
                     <TableHead className="text-[#A1A1AA]">Date</TableHead>
                     <TableHead className="text-[#A1A1AA]">Track</TableHead>
+                    <TableHead className="text-[#A1A1AA]">Mode</TableHead>
                     <TableHead className="text-[#A1A1AA]">Status</TableHead>
                     <TableHead className="text-[#A1A1AA]">Action</TableHead>
                   </TableRow>
@@ -407,9 +487,20 @@ const Dashboard = () => {
                       </TableCell>
                       <TableCell className="text-white capitalize">{interview.track}</TableCell>
                       <TableCell>
+                        {interview.mode === 'real' ? (
+                          <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full flex items-center gap-1 w-fit">
+                            <Zap className="w-3 h-3" /> Real
+                          </span>
+                        ) : (
+                          <span className="text-[#A1A1AA] text-sm">Practice</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           interview.status === 'completed' 
                             ? 'bg-green-500/20 text-green-400' 
+                            : interview.status === 'paused'
+                            ? 'bg-blue-500/20 text-blue-400'
                             : 'bg-yellow-500/20 text-yellow-400'
                         }`}>
                           {interview.status}
@@ -425,7 +516,6 @@ const Dashboard = () => {
                                 if (report) {
                                   navigate(`/report/${report.report_id}`);
                                 } else {
-                                  // Generate report if not exists
                                   const newReport = await axios.post(`${API}/interviews/${interview.session_id}/complete`);
                                   navigate(`/report/${newReport.data.report_id}`);
                                 }
@@ -443,7 +533,7 @@ const Dashboard = () => {
                             onClick={() => navigate(`/interview/${interview.session_id}`)}
                             className="text-sm text-[#2563EB] hover:text-[#1D4ED8]"
                           >
-                            Continue
+                            {interview.status === 'paused' ? 'Resume' : 'Continue'}
                           </button>
                         )}
                       </TableCell>
@@ -455,6 +545,64 @@ const Dashboard = () => {
           )}
         </motion.div>
       </main>
+
+      {/* Real Interview Mode Dialog */}
+      <Dialog open={showRealModeDialog} onOpenChange={setShowRealModeDialog}>
+        <DialogContent className="bg-[#111111] border-[#222222] max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Zap className="w-6 h-6 text-amber-500" />
+              Real Interview Mode
+            </DialogTitle>
+            <DialogDescription className="text-[#A1A1AA]">
+              You're about to start a Real Interview Simulation. This mode is designed to replicate a real technical interview experience.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <h4 className="text-white font-medium">Rules:</h4>
+            <ul className="space-y-2 text-sm text-[#A1A1AA]">
+              <li className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-amber-500" />
+                Camera must be enabled (proctoring active)
+              </li>
+              <li className="flex items-center gap-2">
+                <Shield className="w-4 h-4 text-amber-500" />
+                Tab switching will be detected and flagged
+              </li>
+              <li className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-500" />
+                Strict time limits per question
+              </li>
+              <li className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500" />
+                No hints available
+              </li>
+            </ul>
+            
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-amber-400 text-sm">
+                Your performance will be graded with hiring recommendations. Results can be shared on LinkedIn and other platforms.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <button
+              onClick={() => setShowRealModeDialog(false)}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={startRealInterview}
+              className="bg-gradient-to-r from-amber-500 to-orange-500 text-white px-6 py-2 rounded-md font-medium hover:from-amber-600 hover:to-orange-600"
+            >
+              Start Real Interview
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth, API } from '../App';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 import { 
   Award, TrendingUp, MessageSquare, Code, Sparkles, BookOpen,
-  ArrowLeft, Home, RotateCcw, CheckCircle, AlertCircle
+  ArrowLeft, Home, RotateCcw, CheckCircle, AlertCircle, Download,
+  Share2, Linkedin, Twitter, Shield, Zap, GraduationCap
 } from 'lucide-react';
 import {
   BarChart,
@@ -21,6 +24,12 @@ import {
   PolarRadiusAxis,
   Radar
 } from 'recharts';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
 
 const Report = () => {
   const { reportId } = useParams();
@@ -28,6 +37,8 @@ const Report = () => {
   const { user } = useAuth();
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const certificateRef = useRef(null);
 
   useEffect(() => {
     fetchReport();
@@ -43,6 +54,40 @@ const Report = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadPDF = async () => {
+    if (!certificateRef.current) return;
+    
+    setDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        backgroundColor: '#0A0A0A'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`MockMate_Report_${report.track}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error('PDF generation error:', err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  const shareToLinkedIn = () => {
+    const text = `I just completed a ${report.track} interview on MockMate and scored ${report.overall_score}%! 🎯 #MockMate #InterviewPrep #TechInterview`;
+    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  const shareToTwitter = () => {
+    const text = `Just scored ${report.overall_score}% on my ${report.track} mock interview with MockMate! 🚀 AI-powered interview practice is the future. #MockMate #TechInterview`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   if (loading) {
@@ -68,6 +113,7 @@ const Report = () => {
     { name: 'Problem Solving', score: report.problem_solving_score, fill: '#10B981' },
     { name: 'Code Quality', score: report.code_quality_score, fill: '#F59E0B' },
     { name: 'Clarity', score: report.clarity_score, fill: '#EC4899' },
+    { name: 'Confidence', score: report.confidence_score || 70, fill: '#8B5CF6' },
   ];
 
   const radarData = [
@@ -90,6 +136,24 @@ const Report = () => {
     return 'bg-red-500/10';
   };
 
+  const getGradeColor = (grade) => {
+    const colors = {
+      'A': 'from-green-500 to-emerald-500',
+      'B': 'from-blue-500 to-cyan-500',
+      'C': 'from-yellow-500 to-orange-500',
+      'D': 'from-orange-500 to-red-500',
+      'F': 'from-red-500 to-red-700'
+    };
+    return colors[grade] || colors['C'];
+  };
+
+  const getRecommendationColor = (rec) => {
+    if (rec === 'Strong Hire') return 'text-green-400 bg-green-500/10 border-green-500/20';
+    if (rec === 'Hire') return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+    if (rec === 'Borderline') return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/20';
+    return 'text-red-400 bg-red-500/10 border-red-500/20';
+  };
+
   return (
     <div className="min-h-screen bg-[#0A0A0A]" data-testid="report-page">
       {/* Header */}
@@ -109,54 +173,123 @@ const Report = () => {
                 </div>
                 <span className="text-xl font-bold font-['Outfit'] text-white">Interview Report</span>
               </div>
+              {report.mode === 'real' && (
+                <span className="px-2 py-1 bg-amber-500/20 text-amber-400 text-xs rounded-full flex items-center gap-1">
+                  <Zap className="w-3 h-3" /> Real Mode
+                </span>
+              )}
+            </div>
+            
+            {/* Share/Download buttons */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={shareToLinkedIn}
+                className="p-2 hover:bg-[#222222] rounded-lg transition-colors"
+                title="Share on LinkedIn"
+              >
+                <Linkedin className="w-5 h-5 text-[#0A66C2]" />
+              </button>
+              <button
+                onClick={shareToTwitter}
+                className="p-2 hover:bg-[#222222] rounded-lg transition-colors"
+                title="Share on Twitter"
+              >
+                <Twitter className="w-5 h-5 text-[#1DA1F2]" />
+              </button>
+              <button
+                onClick={downloadPDF}
+                disabled={downloading}
+                className="btn-secondary flex items-center gap-2"
+              >
+                {downloading ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Download PDF
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <motion.div 
-          className="text-center mb-12"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-6">
-            <Sparkles className="w-4 h-4 text-[#7C3AED]" />
-            <span className="text-sm text-[#7C3AED]">Interview Complete</span>
-          </div>
-          <h1 className="text-4xl sm:text-5xl font-bold font-['Outfit'] text-white mb-4">
-            Here's Your Report
-          </h1>
-          <p className="text-[#A1A1AA] capitalize">{report.track} Interview</p>
-        </motion.div>
+        {/* Certificate Card (for PDF) */}
+        <div ref={certificateRef} className="mb-8">
+          {/* Hero Section */}
+          <motion.div 
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7C3AED]/10 border border-[#7C3AED]/20 mb-6">
+              <Sparkles className="w-4 h-4 text-[#7C3AED]" />
+              <span className="text-sm text-[#7C3AED]">Interview Complete</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-bold font-['Outfit'] text-white mb-4">
+              {user?.name}'s Report
+            </h1>
+            <p className="text-[#A1A1AA] capitalize">{report.track} Interview • {new Date(report.created_at).toLocaleDateString()}</p>
+          </motion.div>
 
-        {/* Overall Score */}
-        <motion.div 
-          className="card text-center mb-8 max-w-md mx-auto"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-        >
-          <div className={`inline-flex items-center justify-center w-32 h-32 rounded-full ${getScoreBg(report.overall_score)} mb-4`}>
-            <span className={`text-5xl font-bold ${getScoreColor(report.overall_score)}`}>
-              {report.overall_score}
-            </span>
+          {/* Grade and Score */}
+          <div className="grid md:grid-cols-3 gap-6 mb-8">
+            {/* Overall Score */}
+            <motion.div 
+              className="card text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <div className={`inline-flex items-center justify-center w-28 h-28 rounded-full ${getScoreBg(report.overall_score)} mb-4`}>
+                <span className={`text-5xl font-bold ${getScoreColor(report.overall_score)}`}>
+                  {report.overall_score}
+                </span>
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-1">Overall Score</h2>
+              <p className="text-[#A1A1AA] text-sm">out of 100</p>
+            </motion.div>
+
+            {/* Grade */}
+            <motion.div 
+              className="card text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.15 }}
+            >
+              <div className={`inline-flex items-center justify-center w-28 h-28 rounded-full bg-gradient-to-br ${getGradeColor(report.grade)} mb-4`}>
+                <span className="text-5xl font-bold text-white">
+                  {report.grade}
+                </span>
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-1">Grade</h2>
+              <p className="text-[#A1A1AA] text-sm">Performance Level</p>
+            </motion.div>
+
+            {/* Hiring Recommendation */}
+            <motion.div 
+              className="card text-center"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <div className={`inline-flex items-center justify-center px-6 py-4 rounded-xl border mb-4 ${getRecommendationColor(report.hiring_recommendation)}`}>
+                <span className="text-2xl font-bold">
+                  {report.hiring_recommendation}
+                </span>
+              </div>
+              <h2 className="text-xl font-semibold text-white mb-1">Recommendation</h2>
+              <p className="text-[#A1A1AA] text-sm">Simulated Hiring Decision</p>
+            </motion.div>
           </div>
-          <h2 className="text-2xl font-semibold text-white mb-2">Overall Score</h2>
-          <p className="text-[#A1A1AA]">
-            {report.overall_score >= 80 ? 'Excellent performance!' : 
-             report.overall_score >= 60 ? 'Good job, keep improving!' : 
-             'Keep practicing, you\'ll get better!'}
-          </p>
-        </motion.div>
+        </div>
 
         {/* Score Cards Grid */}
         <motion.div 
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8"
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.25 }}
         >
           {[
             { label: 'Technical', score: report.technical_score, icon: Code },
@@ -164,9 +297,10 @@ const Report = () => {
             { label: 'Problem Solving', score: report.problem_solving_score, icon: TrendingUp },
             { label: 'Code Quality', score: report.code_quality_score, icon: CheckCircle },
             { label: 'Clarity', score: report.clarity_score, icon: Sparkles },
+            { label: 'Integrity', score: report.integrity_score, icon: Shield },
           ].map((item, idx) => (
             <div key={idx} className="card text-center">
-              <item.icon className={`w-6 h-6 mx-auto mb-2 ${getScoreColor(item.score)}`} />
+              <item.icon className={`w-5 h-5 mx-auto mb-2 ${getScoreColor(item.score)}`} />
               <p className={`text-2xl font-bold ${getScoreColor(item.score)}`}>{item.score}</p>
               <p className="text-xs text-[#A1A1AA]">{item.label}</p>
             </div>
@@ -271,12 +405,94 @@ const Report = () => {
           </motion.div>
         </div>
 
+        {/* Interview Coaching Section */}
+        {report.coaching_feedback && report.coaching_feedback.length > 0 && (
+          <motion.div 
+            className="card mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55 }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <GraduationCap className="w-5 h-5 text-[#7C3AED]" />
+              <h3 className="text-lg font-semibold text-white">Interview Coaching</h3>
+            </div>
+            <p className="text-[#A1A1AA] text-sm mb-4">Detailed feedback on your weak answers with suggestions for improvement:</p>
+            
+            <Accordion type="single" collapsible className="space-y-2">
+              {report.coaching_feedback.map((feedback, idx) => (
+                <AccordionItem key={idx} value={`item-${idx}`} className="border border-[#222222] rounded-lg px-4">
+                  <AccordionTrigger className="text-white hover:no-underline">
+                    <span className="text-left">Question {(feedback.question_index || idx) + 1}</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pb-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-[#A1A1AA] mb-1">What you said:</h4>
+                      <p className="text-white text-sm bg-[#0A0A0A] p-3 rounded-lg">
+                        {feedback.what_candidate_said || "Answer not recorded"}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-orange-400 mb-1">Why it was weak:</h4>
+                      <p className="text-[#A1A1AA] text-sm">
+                        {feedback.why_weak}
+                      </p>
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-sm font-medium text-green-400 mb-1">Better approach:</h4>
+                      <p className="text-[#A1A1AA] text-sm bg-green-500/5 border border-green-500/20 p-3 rounded-lg">
+                        {feedback.correct_approach}
+                      </p>
+                    </div>
+                    
+                    {feedback.tip && (
+                      <div className="flex items-start gap-2 p-3 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-lg">
+                        <Sparkles className="w-4 h-4 text-[#7C3AED] flex-shrink-0 mt-0.5" />
+                        <p className="text-sm text-[#A1A1AA]">{feedback.tip}</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </motion.div>
+        )}
+
+        {/* Proctoring Notes */}
+        {report.proctoring_notes && report.proctoring_notes.length > 0 && (
+          <motion.div 
+            className="card mb-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className="w-5 h-5 text-[#7C3AED]" />
+              <h3 className="text-lg font-semibold text-white">Integrity Report</h3>
+            </div>
+            <ul className="space-y-2">
+              {report.proctoring_notes.map((note, idx) => (
+                <li key={idx} className="flex items-start gap-2">
+                  <div className={`w-1.5 h-1.5 rounded-full mt-2 ${
+                    note.includes('Excellent') || note.includes('no integrity') 
+                      ? 'bg-green-500' 
+                      : 'bg-amber-500'
+                  }`}></div>
+                  <span className="text-[#A1A1AA] text-sm">{note}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+
         {/* Topics to Study */}
         <motion.div 
           className="card mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.65 }}
         >
           <div className="flex items-center gap-2 mb-4">
             <BookOpen className="w-5 h-5 text-[#7C3AED]" />

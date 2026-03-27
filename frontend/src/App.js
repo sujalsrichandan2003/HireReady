@@ -5,6 +5,7 @@ import axios from "axios";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
+import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
 import InterviewRoom from "./pages/InterviewRoom";
 import Report from "./pages/Report";
@@ -55,10 +56,22 @@ const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const login = () => {
+  const loginWithGoogle = () => {
     // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
     const redirectUrl = window.location.origin + '/dashboard';
     window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  const loginWithEmail = async (email, password) => {
+    const response = await axios.post(`${API}/auth/login`, { email, password });
+    setUser(response.data);
+    return response.data;
+  };
+
+  const signup = async (email, password, name) => {
+    const response = await axios.post(`${API}/auth/signup`, { email, password, name });
+    setUser(response.data);
+    return response.data;
   };
 
   const logout = async () => {
@@ -72,7 +85,7 @@ const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, loading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, setUser, loading, loginWithGoogle, loginWithEmail, signup, logout, checkAuth }}>
       {children}
     </AuthContext.Provider>
   );
@@ -103,10 +116,10 @@ const AuthCallback = () => {
           navigate('/dashboard', { replace: true, state: { user: response.data } });
         } catch (error) {
           console.error("Auth callback error:", error);
-          navigate('/', { replace: true });
+          navigate('/auth', { replace: true });
         }
       } else {
-        navigate('/', { replace: true });
+        navigate('/auth', { replace: true });
       }
     };
 
@@ -142,7 +155,7 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
   return children;
@@ -160,6 +173,7 @@ function AppRouter() {
   return (
     <Routes>
       <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<AuthPage />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
